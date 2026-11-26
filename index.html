@@ -1,0 +1,1576 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>CTX.WEB // Live Browser Neural Contextual NLP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-canvas: #f7f7f8;
+        --bg-surface: #ffffff;
+        --bg-subtle: #f0f0f2;
+        --bg-active: #18181b;
+        --border-hairline: #e2e2e6;
+        --border-strong: #18181b;
+        --text-primary: #111113;
+        --text-secondary: #52525b;
+        --text-muted: #71717a;
+        --text-inverse: #fafafa;
+        --accent-focus: #0f62fe;
+        --accent-soft: #edf4ff;
+        --status-ok: #15803d;
+        --status-warn: #b45309;
+        --radius-sm: 4px;
+        --radius-md: 6px;
+        --radius-pill: 999px;
+        --font-sans:
+          "Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        font-family: var(--font-sans);
+        background-color: var(--bg-canvas);
+        color: var(--text-primary);
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+      }
+
+      header {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border-hairline);
+        padding: 12px 20px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .brand-title {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        text-transform: uppercase;
+      }
+
+      .mono-badge {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-secondary);
+        background: var(--bg-subtle);
+        border: 1px solid var(--border-hairline);
+        padding: 2px 7px;
+        border-radius: var(--radius-sm);
+      }
+
+      .mono-badge.live {
+        color: var(--status-ok);
+        border-color: #bbf7d0;
+        background: #f0fdf4;
+      }
+
+      .mode-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .mode-pill {
+        appearance: none;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        color: var(--text-secondary);
+        font-family: var(--font-sans);
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        padding: 5px 12px;
+        border-radius: var(--radius-pill);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition:
+          border-color 0.15s ease,
+          background-color 0.15s ease,
+          color 0.15s ease;
+      }
+
+      .mode-pill:hover {
+        border-color: var(--border-strong);
+        color: var(--text-primary);
+      }
+
+      .mode-pill.active {
+        background: var(--bg-active);
+        border-color: var(--bg-active);
+        color: var(--text-inverse);
+      }
+
+      .mode-pill .size-tag {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        opacity: 0.75;
+      }
+
+      main {
+        max-width: 840px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .telemetry-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        background: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        border-radius: var(--radius-md);
+      }
+
+      .telemetry-cell {
+        padding: 10px 14px;
+        border-right: 1px solid var(--border-hairline);
+        border-bottom: 1px solid var(--border-hairline);
+      }
+
+      .telemetry-cell:last-child {
+        border-right: none;
+      }
+
+      @media (min-width: 720px) {
+        .telemetry-cell {
+          border-bottom: none;
+        }
+      }
+
+      .telemetry-label {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        margin-bottom: 2px;
+      }
+
+      .telemetry-value {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Progress Bar for Live Model Download */
+      .loader-strip {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        border-radius: var(--radius-md);
+        padding: 10px 14px;
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .loader-strip.visible {
+        display: flex;
+      }
+
+      .loader-meta {
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+
+      .loader-track {
+        height: 4px;
+        background: var(--bg-subtle);
+        border-radius: var(--radius-pill);
+        overflow: hidden;
+      }
+
+      .loader-fill {
+        height: 100%;
+        width: 0%;
+        background: var(--accent-focus);
+        transition: width 0.15s ease;
+      }
+
+      /* Custom Text Input Panel */
+      .composer-panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        border-radius: var(--radius-md);
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .composer-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .jp-input {
+        flex: 1;
+        min-width: 240px;
+        font-family: var(--font-sans);
+        font-size: 14px;
+        padding: 7px 11px;
+        border: 1px solid var(--border-hairline);
+        border-radius: var(--radius-sm);
+        background: var(--bg-canvas);
+        color: var(--text-primary);
+        outline: none;
+      }
+
+      .jp-input:focus {
+        border-color: var(--accent-focus);
+        background: var(--bg-surface);
+      }
+
+      .action-btn {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 500;
+        background: var(--bg-active);
+        color: var(--text-inverse);
+        border: 1px solid var(--bg-active);
+        border-radius: var(--radius-pill);
+        padding: 6px 14px;
+        cursor: pointer;
+      }
+
+      .action-btn.secondary {
+        background: var(--bg-surface);
+        color: var(--text-secondary);
+        border-color: var(--border-hairline);
+      }
+
+      .action-btn.secondary:hover {
+        border-color: var(--border-strong);
+        color: var(--text-primary);
+      }
+
+      /* Reader Panel */
+      .reader-panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+      }
+
+      .panel-header {
+        padding: 10px 16px;
+        background: var(--bg-subtle);
+        border-bottom: 1px solid var(--border-hairline);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .panel-title {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
+      }
+
+      .panel-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .control-btn {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        color: var(--text-secondary);
+        padding: 3px 9px;
+        border-radius: var(--radius-pill);
+        cursor: pointer;
+      }
+
+      .control-btn.active {
+        border-color: var(--border-strong);
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+
+      .instruction-bar {
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--border-hairline);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .reader-body {
+        padding: 26px 24px 34px;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: pan-y;
+      }
+
+      .sentence-block {
+        margin-bottom: 24px;
+        padding-left: 12px;
+        border-left: 2px solid transparent;
+        transition: border-color 0.15s ease;
+      }
+
+      .sentence-block:last-child {
+        margin-bottom: 0;
+      }
+
+      .sentence-block.active-sentence {
+        border-left-color: var(--accent-focus);
+      }
+
+      .sentence-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+
+      .sentence-id {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+
+      .select-sentence-btn {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-secondary);
+        background: transparent;
+        border: 1px solid var(--border-hairline);
+        border-radius: var(--radius-pill);
+        padding: 1px 8px;
+        cursor: pointer;
+      }
+
+      .select-sentence-btn:hover {
+        border-color: var(--border-strong);
+        color: var(--text-primary);
+      }
+
+      .jp-paragraph {
+        font-size: 22px;
+        line-height: 2.35;
+        letter-spacing: 0.03em;
+        color: var(--text-primary);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        row-gap: 6px;
+      }
+
+      .token {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 2px 3px;
+        margin: 0 1px;
+        border-radius: var(--radius-sm);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition:
+          background-color 0.1s ease,
+          border-color 0.1s ease;
+      }
+
+      .token:hover {
+        background: var(--bg-subtle);
+        border-color: var(--border-hairline);
+      }
+
+      .token.selected {
+        background: var(--accent-soft);
+        border-color: var(--accent-focus);
+        color: var(--accent-focus);
+      }
+
+      .token.polysemy-cue {
+        border-bottom: 1px dashed var(--text-muted);
+      }
+
+      .token.selected.polysemy-cue {
+        border-bottom: 1px solid var(--accent-focus);
+      }
+
+      ruby {
+        ruby-align: center;
+        font-family: "Noto Sans JP", sans-serif;
+      }
+
+      rt {
+        font-size: 10.5px;
+        font-weight: 400;
+        color: var(--text-muted);
+        letter-spacing: 0;
+        line-height: 1.1;
+        transition: opacity 0.15s ease;
+      }
+
+      .hide-ruby rt {
+        opacity: 0;
+      }
+
+      .token.selected rt {
+        color: var(--accent-focus);
+      }
+
+      /* iOS Bottom Sheet */
+      .sheet-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(17, 17, 19, 0.28);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+        z-index: 40;
+      }
+
+      .sheet-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .bottom-sheet {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        max-width: 840px;
+        margin: 0 auto;
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border-strong);
+        border-left: 1px solid var(--border-hairline);
+        border-right: 1px solid var(--border-hairline);
+        border-top-left-radius: 14px;
+        border-top-right-radius: 14px;
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+        z-index: 50;
+        max-height: 84vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .bottom-sheet.open {
+        transform: translateY(0);
+      }
+
+      .sheet-handle-zone {
+        padding: 10px 0 6px;
+        display: flex;
+        justify-content: center;
+        cursor: grab;
+        touch-action: none;
+      }
+
+      .sheet-handle {
+        width: 36px;
+        height: 4px;
+        border-radius: var(--radius-pill);
+        background: #d4d4d8;
+      }
+
+      .sheet-header {
+        padding: 4px 20px 14px;
+        border-bottom: 1px solid var(--border-hairline);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .sheet-target-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .sheet-kicker {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--accent-focus);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .sheet-expression {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
+      }
+
+      .sheet-reading {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .close-sheet-btn {
+        appearance: none;
+        background: var(--bg-subtle);
+        border: 1px solid var(--border-hairline);
+        color: var(--text-primary);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        padding: 5px 10px;
+        border-radius: var(--radius-pill);
+        cursor: pointer;
+      }
+
+      .sheet-content {
+        padding: 16px 20px 28px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .sheet-mode-tabs {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .sheet-tab {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: var(--radius-pill);
+        border: 1px solid var(--border-hairline);
+        background: var(--bg-surface);
+        color: var(--text-secondary);
+        cursor: pointer;
+      }
+
+      .sheet-tab.active {
+        border-color: var(--accent-focus);
+        background: var(--accent-soft);
+        color: var(--accent-focus);
+        font-weight: 500;
+      }
+
+      .analysis-block {
+        border: 1px solid var(--border-hairline);
+        border-radius: var(--radius-md);
+        background: var(--bg-canvas);
+        padding: 12px 14px;
+      }
+
+      .block-label {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .block-main-text {
+        font-size: 14px;
+        color: var(--text-primary);
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+
+      .block-sub-text {
+        font-size: 12.5px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+
+      .metric-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 6px;
+      }
+
+      .metric-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+        font-size: 12px;
+      }
+
+      .metric-bar-track {
+        grid-column: 1 / -1;
+        height: 4px;
+        background: var(--border-hairline);
+        border-radius: var(--radius-pill);
+        overflow: hidden;
+      }
+
+      .metric-bar-fill {
+        height: 100%;
+        background: var(--accent-focus);
+        transition: width 0.25s ease;
+      }
+
+      .metric-bar-fill.muted {
+        background: #a1a1aa;
+      }
+
+      .vector-preview {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-secondary);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        padding: 8px 10px;
+        border-radius: var(--radius-sm);
+        overflow-x: auto;
+        white-space: nowrap;
+        margin-top: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="brand-title">CTX.WEB // LIVE BROWSER INFERENCE</span>
+        <span class="mono-badge live" id="engine-badge">REAL MODELS READY</span>
+      </div>
+
+      <div class="mode-bar" role="tablist" aria-label="Model Mode Selector">
+        <button
+          class="mode-pill active"
+          data-mode="minilm"
+          role="tab"
+          aria-selected="true"
+        >
+          <span>1. Multilingual-E5 / MiniLM</span>
+          <span class="size-tag">Transformers.js</span>
+        </button>
+        <button
+          class="mode-pill"
+          data-mode="deberta"
+          role="tab"
+          aria-selected="false"
+        >
+          <span>2. mDeBERTa-v3 NLI</span>
+          <span class="size-tag">Transformers.js</span>
+        </button>
+        <button
+          class="mode-pill"
+          data-mode="mediapipe"
+          role="tab"
+          aria-selected="false"
+        >
+          <span>3. MediaPipe USE</span>
+          <span class="size-tag">LiteRT Wasm</span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Runtime Telemetry -->
+      <section class="telemetry-grid" aria-label="Runtime Telemetry">
+        <div class="telemetry-cell">
+          <div class="telemetry-label">ACTIVE MODEL CHECKPOINT</div>
+          <div class="telemetry-value" id="tel-model">
+            Xenova/multilingual-e5-small
+          </div>
+        </div>
+        <div class="telemetry-cell">
+          <div class="telemetry-label">RUNTIME ENGINE</div>
+          <div class="telemetry-value" id="tel-runtime">
+            @huggingface/transformers v3
+          </div>
+        </div>
+        <div class="telemetry-cell">
+          <div class="telemetry-label">MODEL STATUS</div>
+          <div class="telemetry-value" id="tel-status">
+            Not Loaded (Loads on Tap)
+          </div>
+        </div>
+        <div class="telemetry-cell">
+          <div class="telemetry-label">REAL INFERENCE TIME</div>
+          <div class="telemetry-value" id="tel-latency">—</div>
+        </div>
+      </section>
+
+      <!-- Live Weight Download Progress -->
+      <section class="loader-strip" id="loader-strip">
+        <div class="loader-meta">
+          <span id="loader-label">Downloading quantized model weights...</span>
+          <span id="loader-pct">0%</span>
+        </div>
+        <div class="loader-track">
+          <div class="loader-fill" id="loader-fill"></div>
+        </div>
+      </section>
+
+      <!-- Custom Japanese Text Input -->
+      <section class="composer-panel">
+        <div class="telemetry-label">
+          TEST YOUR OWN JAPANESE TEXT (AUTO-SEGMENTED + RUBY)
+        </div>
+        <div class="composer-row">
+          <input
+            type="text"
+            class="jp-input"
+            id="custom-jp-input"
+            placeholder="任意の日本語の文章を入力して「ADD TO READER」を押してください..."
+            value="経済の波が押し寄せ、新しい技術が市場を走る。"
+          />
+          <button class="action-btn" id="add-sentence-btn">
+            ADD TO READER
+          </button>
+          <button class="action-btn secondary" id="preload-btn">
+            PRELOAD ACTIVE MODEL
+          </button>
+        </div>
+      </section>
+
+      <!-- Japanese Ruby Reader -->
+      <section class="reader-panel">
+        <div class="panel-header">
+          <span class="panel-title"
+            >JAPANESE CONTEXTUAL READER — TAP WORD OR DRAG SPAN</span
+          >
+          <div class="panel-controls">
+            <button class="control-btn active" id="toggle-ruby-btn">
+              RUBY: ON
+            </button>
+            <button class="control-btn" id="clear-sel-btn">CLEAR</button>
+          </div>
+        </div>
+
+        <div class="instruction-bar">
+          <span
+            >TAP word or DRAG across words/sentences to execute real neural
+            inference</span
+          >
+          <span id="selection-status">0 TOKENS SELECTED</span>
+        </div>
+
+        <div class="reader-body" id="reader-body"></div>
+      </section>
+    </main>
+
+    <!-- iOS-Style Bottom Sheet -->
+    <div class="sheet-backdrop" id="sheet-backdrop"></div>
+    <aside
+      class="bottom-sheet"
+      id="bottom-sheet"
+      aria-modal="true"
+      role="dialog"
+      aria-labelledby="sheet-expression"
+    >
+      <div
+        class="sheet-handle-zone"
+        id="sheet-handle-zone"
+        title="Drag down to dismiss"
+      >
+        <div class="sheet-handle"></div>
+      </div>
+
+      <div class="sheet-header">
+        <div class="sheet-target-group">
+          <div class="sheet-kicker">
+            <span id="sheet-scope-tag">LIVE INFERENCE</span>
+            <span>·</span>
+            <span id="sheet-latency-tag">Computing...</span>
+          </div>
+          <div class="sheet-expression" id="sheet-expression">—</div>
+          <div class="sheet-reading" id="sheet-reading">—</div>
+        </div>
+        <button class="close-sheet-btn" id="close-sheet-btn">
+          ESC / CLOSE
+        </button>
+      </div>
+
+      <div class="sheet-content">
+        <div class="sheet-mode-tabs" id="sheet-mode-tabs">
+          <button class="sheet-tab active" data-mode="minilm">
+            1. E5/MiniLM Contextual Embedding
+          </button>
+          <button class="sheet-tab" data-mode="deberta">
+            2. mDeBERTa-v3 Zero-Shot Nuance
+          </button>
+          <button class="sheet-tab" data-mode="mediapipe">
+            3. MediaPipe USE Embedding
+          </button>
+        </div>
+
+        <div id="sheet-dynamic-body"></div>
+      </div>
+    </aside>
+
+    <script type="module">
+      import {
+        pipeline,
+        env,
+      } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.4.0";
+      import {
+        TextEmbedder,
+        FilesetResolver,
+      } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-text@0.10.14";
+
+      // Configure Transformers.js for browser cache & remote Hugging Face Hub
+      env.allowLocalModels = false;
+      env.useBrowserCache = true;
+
+      // Furigana lookup dictionary for common kanji words + arbitrary input
+      const RUBY_LEXICON = {
+        毎朝: "まいあさ",
+        静か: "しずか",
+        静かな: "しずかな",
+        川沿い: "かわぞい",
+        走る: "はしる",
+        走り: "はしり",
+        都市: "とし",
+        中心: "ちゅうしん",
+        新しい: "あたらしい",
+        鉄道: "てつどう",
+        人: "ひと",
+        慌てる: "あわてる",
+        極端: "きょくたん",
+        極端な: "きょくたんな",
+        行動: "こうどう",
+        経済: "けいざい",
+        波: "なみ",
+        押し寄せ: "おしよせ",
+        技術: "ぎじゅつ",
+        市場: "しじょう",
+        日本: "にほん",
+        日本語: "にほんご",
+        言葉: "ことば",
+        意味: "いみ",
+        文脈: "ぶんみゃく",
+        今日: "きょう",
+        明日: "あした",
+        天気: "てんき",
+        電車: "でんしゃ",
+        駅: "えき",
+        会社: "かいしゃ",
+        仕事: "しごと",
+        勉強: "べんきょう",
+        時間: "じかん",
+        世界: "せかい",
+      };
+
+      const INITIAL_SENTENCES = [
+        { id: "S01", text: "毎朝、静かな川沿いを走る。" },
+        { id: "S02", text: "その都市の中心を新しい鉄道が走る。" },
+        { id: "S03", text: "人は慌てると極端な行動に走りやすい。" },
+      ];
+
+      // Candidate semantic anchors for real cosine similarity comparison
+      const SENSE_ANCHORS = [
+        {
+          label: "Physical motion / running or jogging along a path",
+          prompt: "passage: 人が体を使って道を走る物理的な運動やジョギング",
+        },
+        {
+          label: "Spatial infrastructure / road, railway, or line extending",
+          prompt:
+            "passage: 鉄道や道路などのインフラが都市や地域を通って延びている状態",
+        },
+        {
+          label: "Behavioral tendency / resorting to extreme action or emotion",
+          prompt:
+            "passage: 人が極端な行動や感情的な反応に傾く心理的・比喩的な傾向",
+        },
+        {
+          label: "Grammar particle / syntactic connector or modifier",
+          prompt: "passage: 日本語の助詞や文法的機能語としての役割",
+        },
+      ];
+
+      const NLI_CANDIDATE_LABELS = [
+        "physical movement or outdoor activity",
+        "urban infrastructure or geographic location",
+        "psychological behavior or emotional reaction",
+        "grammatical particle or structural function",
+        "economic or market trend",
+      ];
+
+      const MODEL_CONFIG = {
+        minilm: {
+          name: "Xenova/multilingual-e5-small",
+          runtime: "@huggingface/transformers · FeatureExtraction",
+        },
+        deberta: {
+          name: "Xenova/mDeBERTa-v3-base-mnli-xnli",
+          runtime: "@huggingface/transformers · ZeroShotNLI",
+        },
+        mediapipe: {
+          name: "MediaPipe UniversalSentenceEncoder",
+          runtime: "@mediapipe/tasks-text · LiteRT Wasm",
+        },
+      };
+
+      // Cached live model pipelines
+      const loadedModels = {
+        minilm: null,
+        deberta: null,
+        mediapipe: null,
+      };
+      const anchorEmbeddingsCache = {
+        minilm: null,
+        mediapipe: null,
+      };
+
+      let sentences = [];
+      let currentMode = "minilm";
+      let showRuby = true;
+      let selectedTokens = [];
+      let isDragging = false;
+      let dragStart = null;
+
+      const segmenter = new Intl.Segmenter("ja", { granularity: "word" });
+
+      // Segment Japanese text into token objects with Ruby furigana
+      function tokenizeJapanese(id, text) {
+        const segments = Array.from(segmenter.segment(text));
+        const tokens = segments.map((seg) => {
+          const surface = seg.segment;
+          const ruby = RUBY_LEXICON[surface] || "";
+          const isPolysemyTarget = surface.includes("走");
+          return {
+            surface,
+            ruby,
+            isWordLike: seg.isWordLike,
+            polysemy: isPolysemyTarget,
+          };
+        });
+        return { id, text, tokens };
+      }
+
+      // Cosine similarity helper for real float32 embedding vectors
+      function cosineSimilarity(vecA, vecB) {
+        let dot = 0,
+          normA = 0,
+          normB = 0;
+        for (let i = 0; i < vecA.length; i++) {
+          dot += vecA[i] * vecB[i];
+          normA += vecA[i] * vecA[i];
+          normB += vecB[i] * vecB[i];
+        }
+        return dot / (Math.sqrt(normA) * Math.sqrt(normB) + 1e-8);
+      }
+
+      // Softmax over similarity scores for clear probability distribution
+      function softmax(scores, temp = 18) {
+        const max = Math.max(...scores);
+        const exps = scores.map((s) => Math.exp((s - max) * temp));
+        const sum = exps.reduce((a, b) => a + b, 0);
+        return exps.map((e) => e / sum);
+      }
+
+      // UI Progress Helpers
+      const loaderStrip = document.getElementById("loader-strip");
+      const loaderLabel = document.getElementById("loader-label");
+      const loaderPct = document.getElementById("loader-pct");
+      const loaderFill = document.getElementById("loader-fill");
+
+      function updateProgress(msg, pct) {
+        loaderStrip.classList.add("visible");
+        loaderLabel.textContent = msg;
+        const rounded = Math.min(100, Math.max(0, Math.round(pct)));
+        loaderPct.textContent = `${rounded}%`;
+        loaderFill.style.width = `${rounded}%`;
+        if (rounded >= 100) {
+          setTimeout(() => loaderStrip.classList.remove("visible"), 700);
+        }
+      }
+
+      // Load Real Model on Demand
+      async function ensureModelLoaded(mode) {
+        const statusEl = document.getElementById("tel-status");
+
+        if (loadedModels[mode]) {
+          statusEl.textContent = "Cached in Memory · Ready";
+          return loadedModels[mode];
+        }
+
+        statusEl.textContent = "Downloading & Initializing...";
+        updateProgress(`Loading ${MODEL_CONFIG[mode].name}...`, 12);
+
+        if (mode === "minilm") {
+          const extractor = await pipeline(
+            "feature-extraction",
+            "Xenova/multilingual-e5-small",
+            {
+              dtype: "q8",
+              progress_callback: (info) => {
+                if (info.status === "progress" && info.progress != null) {
+                  updateProgress(`Downloading ${info.file}...`, info.progress);
+                }
+              },
+            },
+          );
+          // Pre-embed semantic sense anchors once
+          const anchorVecs = [];
+          for (const anchor of SENSE_ANCHORS) {
+            const out = await extractor(anchor.prompt, {
+              pooling: "mean",
+              normalize: true,
+            });
+            anchorVecs.push(Array.from(out.data));
+          }
+          anchorEmbeddingsCache.minilm = anchorVecs;
+          loadedModels.minilm = extractor;
+        } else if (mode === "deberta") {
+          const classifier = await pipeline(
+            "zero-shot-classification",
+            "Xenova/mDeBERTa-v3-base-mnli-xnli",
+            {
+              dtype: "q8",
+              progress_callback: (info) => {
+                if (info.status === "progress" && info.progress != null) {
+                  updateProgress(`Downloading ${info.file}...`, info.progress);
+                }
+              },
+            },
+          );
+          loadedModels.deberta = classifier;
+        } else if (mode === "mediapipe") {
+          updateProgress("Initializing MediaPipe LiteRT Wasm runtime...", 35);
+          const fileset = await FilesetResolver.forTextTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-text@0.10.14/wasm",
+          );
+          updateProgress("Loading universal_sentence_encoder.tflite...", 70);
+          const embedder = await TextEmbedder.createFromOptions(fileset, {
+            baseOptions: {
+              modelAssetPath:
+                "https://storage.googleapis.com/mediapipe-models/text_embedder/universal_sentence_encoder/float32/1/universal_sentence_encoder.tflite",
+            },
+          });
+          anchorEmbeddingsCache.mediapipe = SENSE_ANCHORS.map(
+            (a) => embedder.embed(a.label).embeddings[0].floatEmbedding,
+          );
+          loadedModels.mediapipe = embedder;
+        }
+
+        updateProgress(`${MODEL_CONFIG[mode].name} ready`, 100);
+        statusEl.textContent = "Loaded · WebAssembly/WebGPU";
+        return loadedModels[mode];
+      }
+
+      // Reader Rendering
+      const readerBody = document.getElementById("reader-body");
+      const selectionStatus = document.getElementById("selection-status");
+
+      function renderReader() {
+        readerBody.innerHTML = "";
+        sentences.forEach((sentence, sIdx) => {
+          const block = document.createElement("div");
+          block.className = "sentence-block";
+          block.dataset.sIdx = sIdx;
+
+          const meta = document.createElement("div");
+          meta.className = "sentence-meta";
+          meta.innerHTML = `
+          <span class="sentence-id">${sentence.id} // ${sentence.tokens.length} SEGMENTS</span>
+          <button class="select-sentence-btn" data-select-sentence="${sIdx}">SELECT SENTENCE</button>
+        `;
+
+          const p = document.createElement("div");
+          p.className = "jp-paragraph";
+
+          sentence.tokens.forEach((tok, tIdx) => {
+            const span = document.createElement("span");
+            span.className = "token" + (tok.polysemy ? " polysemy-cue" : "");
+            span.dataset.sIdx = sIdx;
+            span.dataset.tIdx = tIdx;
+            span.innerHTML = tok.ruby
+              ? `<ruby><rb>${tok.surface}</rb><rt>${tok.ruby}</rt></ruby>`
+              : `<ruby><rb>${tok.surface}</rb><rt> </rt></ruby>`;
+            p.appendChild(span);
+          });
+
+          block.appendChild(meta);
+          block.appendChild(p);
+          readerBody.appendChild(block);
+        });
+      }
+
+      // Mode Switching
+      function setMode(mode) {
+        currentMode = mode;
+        document.getElementById("tel-model").textContent =
+          MODEL_CONFIG[mode].name;
+        document.getElementById("tel-runtime").textContent =
+          MODEL_CONFIG[mode].runtime;
+        document.getElementById("tel-status").textContent = loadedModels[mode]
+          ? "Cached in Memory · Ready"
+          : "Not Loaded (Loads on Tap)";
+
+        document.querySelectorAll(".mode-pill").forEach((btn) => {
+          const active = btn.dataset.mode === mode;
+          btn.classList.toggle("active", active);
+          btn.setAttribute("aria-selected", active);
+        });
+
+        document.querySelectorAll(".sheet-tab").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.mode === mode);
+        });
+
+        if (
+          selectedTokens.length > 0 &&
+          document.getElementById("bottom-sheet").classList.contains("open")
+        ) {
+          runLiveAnalysis();
+        }
+      }
+
+      document.querySelectorAll(".mode-pill, .sheet-tab").forEach((btn) => {
+        btn.addEventListener("click", () => setMode(btn.dataset.mode));
+      });
+
+      document.getElementById("preload-btn").addEventListener("click", () => {
+        ensureModelLoaded(currentMode);
+      });
+
+      document
+        .getElementById("add-sentence-btn")
+        .addEventListener("click", () => {
+          const input = document.getElementById("custom-jp-input");
+          const val = input.value.trim();
+          if (!val) return;
+          const nextId = `S0${sentences.length + 1}`;
+          sentences.push(tokenizeJapanese(nextId, val));
+          renderReader();
+          input.value = "";
+        });
+
+      const toggleRubyBtn = document.getElementById("toggle-ruby-btn");
+      toggleRubyBtn.addEventListener("click", () => {
+        showRuby = !showRuby;
+        readerBody.classList.toggle("hide-ruby", !showRuby);
+        toggleRubyBtn.textContent = showRuby ? "RUBY: ON" : "RUBY: OFF";
+        toggleRubyBtn.classList.toggle("active", showRuby);
+      });
+
+      document.getElementById("clear-sel-btn").addEventListener("click", () => {
+        selectedTokens = [];
+        updateSelectionVisuals();
+        closeSheet();
+      });
+
+      function updateSelectionVisuals() {
+        document
+          .querySelectorAll(".token")
+          .forEach((el) => el.classList.remove("selected"));
+        document
+          .querySelectorAll(".sentence-block")
+          .forEach((el) => el.classList.remove("active-sentence"));
+
+        const activeSentences = new Set();
+        selectedTokens.forEach(({ sIdx, tIdx }) => {
+          activeSentences.add(sIdx);
+          const el = readerBody.querySelector(
+            `.token[data-s-idx="${sIdx}"][data-t-idx="${tIdx}"]`,
+          );
+          if (el) el.classList.add("selected");
+        });
+
+        activeSentences.forEach((sIdx) => {
+          const block = readerBody.querySelector(
+            `.sentence-block[data-s-idx="${sIdx}"]`,
+          );
+          if (block) block.classList.add("active-sentence");
+        });
+
+        selectionStatus.textContent = `${selectedTokens.length} TOKEN${selectedTokens.length === 1 ? "" : "S"} SELECTED`;
+      }
+
+      readerBody.addEventListener("click", (e) => {
+        const sentenceBtn = e.target.closest("[data-select-sentence]");
+        if (sentenceBtn) {
+          const sIdx = Number(sentenceBtn.dataset.selectSentence);
+          selectedTokens = sentences[sIdx].tokens.map((_, tIdx) => ({
+            sIdx,
+            tIdx,
+          }));
+          updateSelectionVisuals();
+          runLiveAnalysis();
+        }
+      });
+
+      function getTokenCoordsFromEvent(e) {
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const target = document.elementFromPoint(clientX, clientY);
+        const tokenEl = target ? target.closest(".token") : null;
+        if (!tokenEl) return null;
+        return {
+          sIdx: Number(tokenEl.dataset.sIdx),
+          tIdx: Number(tokenEl.dataset.tIdx),
+        };
+      }
+
+      function computeRangeSelection(start, end) {
+        const flat = [];
+        sentences.forEach((s, sIdx) => {
+          s.tokens.forEach((_, tIdx) => flat.push({ sIdx, tIdx }));
+        });
+        const idxA = flat.findIndex(
+          (item) => item.sIdx === start.sIdx && item.tIdx === start.tIdx,
+        );
+        const idxB = flat.findIndex(
+          (item) => item.sIdx === end.sIdx && item.tIdx === end.tIdx,
+        );
+        if (idxA === -1 || idxB === -1) return [];
+        const [min, max] = idxA <= idxB ? [idxA, idxB] : [idxB, idxA];
+        return flat.slice(min, max + 1);
+      }
+
+      readerBody.addEventListener("pointerdown", (e) => {
+        if (e.target.closest("[data-select-sentence]")) return;
+        const coords = getTokenCoordsFromEvent(e);
+        if (!coords) return;
+        isDragging = true;
+        dragStart = coords;
+        selectedTokens = [coords];
+        updateSelectionVisuals();
+      });
+
+      window.addEventListener("pointermove", (e) => {
+        if (!isDragging || !dragStart) return;
+        const current = getTokenCoordsFromEvent(e);
+        if (!current) return;
+        selectedTokens = computeRangeSelection(dragStart, current);
+        updateSelectionVisuals();
+      });
+
+      window.addEventListener("pointerup", () => {
+        if (!isDragging) return;
+        isDragging = false;
+        if (selectedTokens.length > 0) {
+          runLiveAnalysis();
+        }
+      });
+
+      // Execute REAL Neural Inference in the Browser
+      async function runLiveAnalysis() {
+        if (selectedTokens.length === 0) return;
+
+        const tokensData = selectedTokens.map(({ sIdx, tIdx }) => ({
+          ...sentences[sIdx].tokens[tIdx],
+          sentence: sentences[sIdx],
+        }));
+
+        const targetSpan = tokensData.map((t) => t.surface).join("");
+        const readingText = tokensData.map((t) => t.ruby || t.surface).join("");
+        const fullSentenceContext = tokensData[0].sentence.text;
+        const isSingleToken = tokensData.length === 1;
+
+        document.getElementById("sheet-scope-tag").textContent = isSingleToken
+          ? `TOKEN IN CONTEXT · ${tokensData[0].sentence.id}`
+          : `SPAN (${tokensData.length} SEGMENTS) · ${tokensData[0].sentence.id}`;
+        document.getElementById("sheet-expression").textContent = targetSpan;
+        document.getElementById("sheet-reading").textContent =
+          readingText !== targetSpan
+            ? `Reading: ${readingText} · Context: ${fullSentenceContext}`
+            : `Context: ${fullSentenceContext}`;
+
+        const sheetBody = document.getElementById("sheet-dynamic-body");
+        sheetBody.innerHTML = `
+        <div class="analysis-block">
+          <div class="block-label"><span>RUNNING LIVE NEURAL INFERENCE</span><span>${MODEL_CONFIG[currentMode].name}</span></div>
+          <div class="block-main-text">Computing contextual tensor representations in browser...</div>
+          <div class="block-sub-text">First run downloads and caches quantized weights locally.</div>
+        </div>
+      `;
+        openSheet();
+
+        try {
+          const model = await ensureModelLoaded(currentMode);
+          const t0 = performance.now();
+          let html = "";
+
+          if (currentMode === "minilm") {
+            // Format contextual query pairing target span with full sentence context
+            const contextualPrompt =
+              targetSpan === fullSentenceContext
+                ? `query: ${fullSentenceContext}`
+                : `query: 文脈「${fullSentenceContext}」における「${targetSpan}」の意味`;
+
+            const output = await model(contextualPrompt, {
+              pooling: "mean",
+              normalize: true,
+            });
+            const embedding = Array.from(output.data);
+            const elapsed = (performance.now() - t0).toFixed(1);
+
+            document.getElementById("tel-latency").textContent =
+              `${elapsed} ms (live)`;
+            document.getElementById("sheet-latency-tag").textContent =
+              `${elapsed} ms · 384-dim Float32`;
+
+            const rawSims = anchorEmbeddingsCache.minilm.map((anchorVec) =>
+              cosineSimilarity(embedding, anchorVec),
+            );
+            const probs = softmax(rawSims, 22);
+            const ranked = SENSE_ANCHORS.map((a, i) => ({
+              label: a.label,
+              rawCosine: rawSims[i],
+              prob: probs[i],
+            })).sort((a, b) => b.prob - a.prob);
+
+            html = `
+            <div class="analysis-block">
+              <div class="block-label">
+                <span>LIVE CONTEXTUAL SENSE ALIGNMENT</span>
+                <span>TOP COSINE: ${ranked[0].rawCosine.toFixed(4)}</span>
+              </div>
+              <div class="block-main-text">${ranked[0].label}</div>
+              <div class="block-sub-text">Computed live from pooled self-attention over "${fullSentenceContext}".</div>
+              <div class="metric-list">
+                ${ranked
+                  .map(
+                    (item, idx) => `
+                  <div class="metric-row">
+                    <span>${item.label}</span>
+                    <span class="mono-badge">${(item.prob * 100).toFixed(1)}% (cos ${item.rawCosine.toFixed(2)})</span>
+                    <div class="metric-bar-track">
+                      <div class="metric-bar-fill ${idx > 0 ? "muted" : ""}" style="width: ${item.prob * 100}%"></div>
+                    </div>
+                  </div>
+                `,
+                  )
+                  .join("")}
+              </div>
+            </div>
+            <div class="analysis-block">
+              <div class="block-label"><span>RAW CONTEXTUAL EMBEDDING TENSOR (FIRST 8 OF 384 DIMS)</span><span>L2 NORMALIZED</span></div>
+              <div class="vector-preview">[${embedding
+                .slice(0, 8)
+                .map((v) => v.toFixed(5))
+                .join(", ")}, ...]</div>
+            </div>
+          `;
+          } else if (currentMode === "deberta") {
+            // Cross-encoder NLI premise -> hypothesis evaluation
+            const premise =
+              targetSpan === fullSentenceContext
+                ? fullSentenceContext
+                : `文脈「${fullSentenceContext}」の中の「${targetSpan}」`;
+
+            const res = await model(premise, NLI_CANDIDATE_LABELS, {
+              hypothesis_template:
+                "In this context, the expression describes {}.",
+            });
+            const elapsed = (performance.now() - t0).toFixed(1);
+
+            document.getElementById("tel-latency").textContent =
+              `${elapsed} ms (live)`;
+            document.getElementById("sheet-latency-tag").textContent =
+              `${elapsed} ms · mDeBERTa-v3 NLI`;
+
+            html = `
+            <div class="analysis-block">
+              <div class="block-label"><span>LIVE DISENTANGLED ATTENTION NLI SCORES</span><span>CROSS-ENCODER</span></div>
+              <div class="block-main-text">Primary Nuance: ${res.labels[0]}</div>
+              <div class="block-sub-text">Evaluated premise "${premise}" directly against semantic hypotheses via DeBERTa disentangled relative attention.</div>
+              <div class="metric-list">
+                ${res.labels
+                  .map(
+                    (lbl, idx) => `
+                  <div class="metric-row">
+                    <span>${lbl}</span>
+                    <span class="mono-badge">${(res.scores[idx] * 100).toFixed(1)}%</span>
+                    <div class="metric-bar-track">
+                      <div class="metric-bar-fill ${idx > 0 ? "muted" : ""}" style="width: ${res.scores[idx] * 100}%"></div>
+                    </div>
+                  </div>
+                `,
+                  )
+                  .join("")}
+              </div>
+            </div>
+          `;
+          } else if (currentMode === "mediapipe") {
+            const inputForMp =
+              targetSpan === fullSentenceContext
+                ? fullSentenceContext
+                : `${targetSpan} (${fullSentenceContext})`;
+            const embedResult = model.embed(inputForMp);
+            const vec = embedResult.embeddings[0].floatEmbedding;
+            const elapsed = (performance.now() - t0).toFixed(1);
+
+            document.getElementById("tel-latency").textContent =
+              `${elapsed} ms (live)`;
+            document.getElementById("sheet-latency-tag").textContent =
+              `${elapsed} ms · MediaPipe Wasm`;
+
+            const rawSims = anchorEmbeddingsCache.mediapipe.map((anchorVec) =>
+              cosineSimilarity(vec, anchorVec),
+            );
+            const probs = softmax(rawSims, 10);
+            const ranked = SENSE_ANCHORS.map((a, i) => ({
+              label: a.label,
+              rawCosine: rawSims[i],
+              prob: probs[i],
+            })).sort((a, b) => b.prob - a.prob);
+
+            html = `
+            <div class="analysis-block">
+              <div class="block-label"><span>LIVE MEDIAPIPE TEXT EMBEDDER</span><span>${vec.length}-DIM FLOAT32</span></div>
+              <div class="block-main-text">${ranked[0].label}</div>
+              <div class="block-sub-text">Executed on-device via MediaPipe LiteRT XNNPACK Wasm runtime.</div>
+              <div class="metric-list">
+                ${ranked
+                  .map(
+                    (item, idx) => `
+                  <div class="metric-row">
+                    <span>${item.label}</span>
+                    <span class="mono-badge">${(item.prob * 100).toFixed(1)}% (cos ${item.rawCosine.toFixed(2)})</span>
+                    <div class="metric-bar-track">
+                      <div class="metric-bar-fill ${idx > 0 ? "muted" : ""}" style="width: ${item.prob * 100}%"></div>
+                    </div>
+                  </div>
+                `,
+                  )
+                  .join("")}
+              </div>
+            </div>
+            <div class="analysis-block">
+              <div class="block-label"><span>RAW MEDIAPIPE TENSOR SLICE</span><span>FIRST 8 DIMS</span></div>
+              <div class="vector-preview">[${Array.from(vec.slice(0, 8))
+                .map((v) => v.toFixed(5))
+                .join(", ")}, ...]</div>
+            </div>
+          `;
+          }
+
+          sheetBody.innerHTML = html;
+        } catch (err) {
+          document.getElementById("tel-status").textContent =
+            "Error loading model";
+          sheetBody.innerHTML = `
+          <div class="analysis-block">
+            <div class="block-label"><span>INFERENCE ERROR</span><span>NETWORK / WASM</span></div>
+            <div class="block-main-text">${err.message}</div>
+            <div class="block-sub-text">Ensure your browser allows ES module CDN imports from jsdelivr.net and Hugging Face model downloads.</div>
+          </div>
+        `;
+        }
+      }
+
+      // iOS Bottom Sheet Controls
+      const sheetBackdrop = document.getElementById("sheet-backdrop");
+      const bottomSheet = document.getElementById("bottom-sheet");
+
+      function openSheet() {
+        sheetBackdrop.classList.add("open");
+        bottomSheet.style.transform = "";
+        bottomSheet.classList.add("open");
+      }
+
+      function closeSheet() {
+        sheetBackdrop.classList.remove("open");
+        bottomSheet.classList.remove("open");
+        bottomSheet.style.transform = "";
+      }
+
+      sheetBackdrop.addEventListener("click", closeSheet);
+      document
+        .getElementById("close-sheet-btn")
+        .addEventListener("click", closeSheet);
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeSheet();
+      });
+
+      const handleZone = document.getElementById("sheet-handle-zone");
+      let sheetStartY = 0;
+      let sheetCurrentY = 0;
+      let draggingSheet = false;
+
+      handleZone.addEventListener("pointerdown", (e) => {
+        draggingSheet = true;
+        sheetStartY = e.clientY;
+        bottomSheet.style.transition = "none";
+        handleZone.setPointerCapture(e.pointerId);
+      });
+
+      handleZone.addEventListener("pointermove", (e) => {
+        if (!draggingSheet) return;
+        const deltaY = Math.max(0, e.clientY - sheetStartY);
+        sheetCurrentY = deltaY;
+        bottomSheet.style.transform = `translateY(${deltaY}px)`;
+      });
+
+      handleZone.addEventListener("pointerup", () => {
+        if (!draggingSheet) return;
+        draggingSheet = false;
+        bottomSheet.style.transition = "";
+        if (sheetCurrentY > 90) {
+          closeSheet();
+        } else {
+          bottomSheet.style.transform = "";
+        }
+        sheetCurrentY = 0;
+      });
+
+      // Boot
+      sentences = INITIAL_SENTENCES.map((s) => tokenizeJapanese(s.id, s.text));
+      renderReader();
+    </script>
+  </body>
+</html>
